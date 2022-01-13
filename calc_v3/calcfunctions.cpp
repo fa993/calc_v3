@@ -20,39 +20,47 @@ private:
     
     void visitor() {
         //do substitute
-        std::name;
-        if(expressionTree->get_node_type() == SECONDARY_FUNCTION) {
-            name = ((CalcSecondaryFunctionData*)dt)->get_name();
-        } else if(expressionTree->get_node_type() == PRIMARY_FUNCTION){
-            name = ((CalcText*)dt)->get_value();
-        }
-        if(expressionTree->get_node_type() == PRIMARY_FUNCTION || expressionTree->get_node_type() == SECONDARY_FUNCTION) {
-            visitor_actual((CalcFunctionData*)expressionTree);
-        }
-        
+        expressionTree = pre_visitor(expressionTree);
     }
     
-    void visitor_actual(CalcFunctionData* funcData) {
-        for(int j = 0; j < funcData->get_arg_size(); j++) {
-            CalcData* dt = funcData->get_arg(j);
-            if(dt->get_node_type() == SECONDARY_FUNCTION || dt->get_node_type() == TEXT) {
-                std::string name;
-                if(dt->get_node_type() == SECONDARY_FUNCTION) {
-                    name = ((CalcSecondaryFunctionData*)dt)->get_name();
-                } else {
-                    name = ((CalcText*)dt)->get_value();
+    CalcData* pre_visitor(CalcData* data){
+        if(data->get_node_type() == TEXT) {
+            std::string name = ((CalcText*)data)->get_value();
+            for(size_t i = 0; i < this->params.size(); i++) {
+                if (name == params[i]->get_value()) {
+                    return this->args[i];
                 }
-                for(size_t i = 0; i < this->params.size(); i++) {
-                    if (name == params[i]->get_value()) {
-                        funcData->set_arg(j, this->args[i]);
-                        if(dt->get_node_type() == SECONDARY_FUNCTION) {
-                            ((CalcSecondaryFunctionData*)funcData->get_arg(j))->set_args(((CalcSecondaryFunctionData*)dt)->get_args());
+            }
+        } else {
+            visitor_actual(data);
+        }
+        return data;
+    }
+    
+    void visitor_actual(CalcData* toVisit) {
+        if(toVisit->get_node_type() == SECONDARY_FUNCTION || toVisit->get_node_type() == PRIMARY_FUNCTION) {
+            CalcFunctionData* funcData = ((CalcFunctionData*)toVisit);
+            for(int j = 0; j < funcData->get_arg_size(); j++) {
+                CalcData* dt = funcData->get_arg(j);
+                if(dt->get_node_type() == SECONDARY_FUNCTION || dt->get_node_type() == TEXT) {
+                    std::string name;
+                    if(dt->get_node_type() == SECONDARY_FUNCTION) {
+                        name = ((CalcSecondaryFunctionData*)dt)->get_name();
+                    } else {
+                        name = ((CalcText*)dt)->get_value();
+                    }
+                    for(size_t i = 0; i < this->params.size(); i++) {
+                        if (name == params[i]->get_value()) {
+                            funcData->set_arg(j, this->args[i]);
+                            if(dt->get_node_type() == SECONDARY_FUNCTION) {
+                                ((CalcSecondaryFunctionData*)funcData->get_arg(j))->set_args(((CalcSecondaryFunctionData*)dt)->get_args());
+                            }
                         }
                     }
-                    if(funcData->get_arg(j)->get_node_type() == SECONDARY_FUNCTION || funcData->get_arg(j)->get_node_type() == PRIMARY_FUNCTION) {
-                        for(size_t k = 0; k < ((CalcFunctionData*)funcData->get_arg(j))->get_arg_size(); k++) {
-                            visitor_actual(((CalcFunctionData*)funcData->get_arg(j))->get_arg(i));
-                        }
+                }
+                if(funcData->get_arg(j)->get_node_type() == SECONDARY_FUNCTION || funcData->get_arg(j)->get_node_type() == PRIMARY_FUNCTION) {
+                    for(size_t k = 0; k < ((CalcFunctionData*)funcData->get_arg(j))->get_arg_size(); k++) {
+                        ((CalcFunctionData*)funcData->get_arg(j))->set_arg(k, pre_visitor(((CalcFunctionData*)funcData->get_arg(j))->get_arg(k)));
                     }
                 }
             }
@@ -115,7 +123,7 @@ public:
         buffer << ')';
     }
     
-    CalcData* clone() {
+    CalcFunctionData* clone_self() {
         CalcPrimaryFunctionData* dat = new CalcUserDefinedFuncton(name, expressionTree->clone(), params);
         dat->set_wrap_brackets(this->get_wrap_brackets());
         return dat;
@@ -232,7 +240,7 @@ public:
         }
     }
     
-    CalcData* clone() {
+    CalcFunctionData* clone_self() {
         CalcPrimaryFunctionData* dat = create(args);
         dat->set_wrap_brackets(this->get_wrap_brackets());
         return dat;
@@ -350,7 +358,7 @@ public:
         
     }
     
-    CalcData* clone() {
+    CalcFunctionData* clone_self() {
         CalcPrimaryFunctionData* dat = create(arg1, arg2);
         dat->set_wrap_brackets(this->get_wrap_brackets());
         return dat;
@@ -444,7 +452,7 @@ public:
         }
     }
     
-    CalcData* clone() {
+    CalcFunctionData* clone_self() {
         CalcPrimaryFunctionData* dat = create(arg);
         dat->set_wrap_brackets(this->get_wrap_brackets());
         return dat;
@@ -538,8 +546,10 @@ public:
         }
     }
     
-    CalcData* clone() {
-        return create(arg);
+    CalcFunctionData* clone_self() {
+        CalcPrimaryFunctionData* dat = create(arg);
+        dat->set_wrap_brackets(this->get_wrap_brackets());
+        return dat;
     }
 
     ~CalcUnaryFunction() {

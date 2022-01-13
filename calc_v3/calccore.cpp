@@ -286,6 +286,20 @@ public:
     
     virtual size_t get_arg_size() = 0;
     
+    virtual CalcFunctionData* clone_self() = 0;
+    
+    CalcData* clone() final {
+        CalcFunctionData* self = clone_self();
+        for(int i = 0; i < this->get_arg_size(); i++) {
+            if(this->get_arg(i) != nullptr) {
+                self->set_arg(i, this->get_arg(i)->clone());
+            } else {
+                self->set_arg(i, nullptr);
+            }
+        }
+        return self;
+    }
+    
 };
 
 class CalcPrimaryFunctionData : public CalcFunctionData
@@ -384,7 +398,7 @@ public:
         return this->wrapWithBrackets;
     }
 
-    CalcData *clone()
+    CalcFunctionData *clone_self()
     {
         throw "Unsupported as of now";
     }
